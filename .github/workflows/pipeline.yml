@@ -26,7 +26,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: registered-data
-          path: ourism_project/data//tourism.csv   # Replace with the path to the raw dataset inside your data folder.
+          path: tourism_project/data//tourism.csv   # Replace with the path to the raw dataset inside your data folder.
 
   data-prep:
     needs: register-dataset
