@@ -52,20 +52,30 @@ jobs:
             ytrain.csv
             ytest.csv
 
-  model-traning:
+  
+  model-training:
     needs: data-prep
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+
       - name: Install Dependencies
-        run: pip install -r tourism_project/deployment/requirements.txt   # Replace with the path to your project's requirements file.
+        run: |
+          python -m pip install -r tourism_project/requirements.txt
+          python -m pip show mlflow
+
       - name: Download Train Test Splits
         uses: actions/download-artifact@v4
         with:
           name: data-splits
+
+      - name: Model Building
+        run: python tourism_project/model_building/train.py
       - name: Start MLflow Server
         run: |
           nohup mlflow ui --host 0.0.0.0 --port 5000 &  # Run MLflow UI in the background
