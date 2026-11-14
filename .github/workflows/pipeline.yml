@@ -100,6 +100,33 @@ jobs:
             ytest.csv
           if-no-files-found: error
 
+   
+      - name: Upload Train and Test Datasets to Hugging Face
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          HF_REPO_ID: ola-williams/tourism-package-prediction
+        run: |
+          python - <<'PY'
+          import os
+          from huggingface_hub import HfApi
+
+          api = HfApi(token=os.environ["HF_TOKEN"])
+
+          for filename in [
+              "Xtrain.csv",
+              "Xtest.csv",
+              "ytrain.csv",
+              "ytest.csv"
+          ]:
+              api.upload_file(
+                  path_or_fileobj=filename,
+                  path_in_repo=filename,
+                  repo_id=os.environ["HF_REPO_ID"],
+                  repo_type="dataset"
+              )
+              print(f"Uploaded: {filename}")
+          PY
+
   # ===================================
   # JOB 3: MODEL TRAINING
   # ===================================
