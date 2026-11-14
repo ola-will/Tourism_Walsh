@@ -40,7 +40,7 @@ jobs:
       - name: Verify Dataset
         run: |
           test -f tourism_project/data/tourism.csv
-          echo "Dataset file verified successfully"
+          echo "Dataset verified successfully"
 
       - name: Upload Registered Dataset
         uses: actions/upload-artifact@v4
@@ -87,7 +87,7 @@ jobs:
           test -f Xtest.csv
           test -f ytrain.csv
           test -f ytest.csv
-          echo "All training and testing files verified"
+          echo "All four data split files verified"
 
       - name: Upload Train Test Splits
         uses: actions/upload-artifact@v4
@@ -100,31 +100,73 @@ jobs:
             ytest.csv
           if-no-files-found: error
 
-   
+      # ===================================
+      # HUGGING FACE DATASET UPLOAD
+      # ===================================
+
+      - name: Install Hugging Face Hub
+        run: |
+          python -m pip install huggingface_hub
+          python -m pip show huggingface_hub
+          python -c "from huggingface_hub import HfApi; print('Hugging Face Hub installed successfully')"
+
       - name: Upload Train and Test Datasets to Hugging Face
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
           HF_REPO_ID: ola-williams/tourism-package-prediction
+
         run: |
           python - <<'PY'
           import os
+          from pathlib import Path
           from huggingface_hub import HfApi
 
-          api = HfApi(token=os.environ["HF_TOKEN"])
+          token = os.environ.get("HF_TOKEN")
+          repo_id = os.environ["HF_REPO_ID"]
 
-          for filename in [
+          if not token:
+              raise ValueError(
+                  "HF_TOKEN is missing from GitHub Actions Secrets"
+              )
+
+          files = [
               "Xtrain.csv",
               "Xtest.csv",
               "ytrain.csv",
               "ytest.csv"
-          ]:
+          ]
+
+          # Verify all files exist
+          for filename in files:
+              if not Path(filename).is_file():
+                  raise FileNotFoundError(
+                      f"Missing file: {filename}"
+                  )
+
+          # Authenticate with Hugging Face
+          api = HfApi(token=token)
+
+          # Verify the dataset repository exists
+          api.repo_info(
+              repo_id=repo_id,
+              repo_type="dataset"
+          )
+
+          # Upload all four datasets
+          for filename in files:
               api.upload_file(
                   path_or_fileobj=filename,
                   path_in_repo=filename,
-                  repo_id=os.environ["HF_REPO_ID"],
-                  repo_type="dataset"
+                  repo_id=repo_id,
+                  repo_type="dataset",
+                  commit_message=f"Upload {filename}"
               )
-              print(f"Uploaded: {filename}")
+
+              print(f"Uploaded successfully: {filename}")
+
+          print(
+              "All four datasets uploaded to Hugging Face successfully!"
+          )
           PY
 
   # ===================================
